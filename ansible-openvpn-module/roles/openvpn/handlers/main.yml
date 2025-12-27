@@ -1,0 +1,14 @@
+---
+# Handlers for OpenVPN role
+
+- name: restart openvpn
+  systemd:
+    name: openvpn@server
+    state: restarted
+  become: yes
+
+- name: reload openvpn
+  systemd:
+    name: openvpn@server
+    state: reloaded
+  become: yes

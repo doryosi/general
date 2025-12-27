@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""
+Role template for OpenVPN configuration
+"""
+
+- name: Ensure OpenVPN packages are installed
+  package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - openvpn
+    - easy-rsa
+    - iptables-persistent
+  become: yes
+
+- name: Create OpenVPN config directory
+  file:
+    path: /etc/openvpn
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Generate OpenVPN server configuration
+  openvpn_configure:
+    mode: server
+    action: configure
+    port: "{{ openvpn_port | default(1194) }}"
+    protocol: "{{ openvpn_protocol | default('udp') }}"
+    cipher: "{{ openvpn_cipher | default('AES-256-CBC') }}"
+    vpn_network: "{{ openvpn_network | default('10.8.0.0/24') }}"
+    enable_nat: "{{ openvpn_enable_nat | default(true) }}"
+    enable_compress: "{{ openvpn_enable_compress | default(true) }}"
+    ca_cert: "{{ openvpn_ca_cert | default('/etc/openvpn/ca.crt') }}"
+    server_cert: "{{ openvpn_server_cert | default('/etc/openvpn/server.crt') }}"
+    server_key: "{{ openvpn_server_key | default('/etc/openvpn/server.key') }}"
+    dh_pem: "{{ openvpn_dh_pem | default('/etc/openvpn/dh.pem') }}"
+    tls_auth_key: "{{ openvpn_tls_auth_key | default('/etc/openvpn/ta.key') }}"
+    state: present
+  become: yes
+  notify: restart openvpn
+
+- name: Ensure OpenVPN service is enabled
+  systemd:
+    name: openvpn@server
+    enabled: yes
+    state: started
+  become: yes
+
+- name: Configure firewall for OpenVPN
+  ufw:
+    rule: allow
+    port: "{{ openvpn_port | default(1194) }}"
+    proto: "{{ openvpn_protocol | default('udp') }}"
+  become: yes
+  when: ansible_os_family == "Debian"

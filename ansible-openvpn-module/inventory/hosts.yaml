@@ -1,0 +1,92 @@
+---
+# Ansible OpenVPN Module Inventory - YAML Format Example
+
+all:
+  vars:
+    # Global Variables for all hosts
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_connection: ssh
+    ansible_become: true
+    ansible_become_method: su
+    ansible_become_user: root
+  children:
+    openvpn_servers:
+      vars:
+        openvpn_port: 1194
+        openvpn_protocol: udp
+        openvpn_cipher: AES-256-CBC
+        openvpn_network: 10.8.0.0/24
+        openvpn_netmask: 255.255.255.0
+        openvpn_enable_nat: true
+        openvpn_enable_compress: true
+        openvpn_ca_cert: /etc/openvpn/ca.crt
+        openvpn_server_cert: /etc/openvpn/server.crt
+        openvpn_server_key: /etc/openvpn/server.key
+        openvpn_dh_pem: /etc/openvpn/dh.pem
+        openvpn_tls_auth_key: /etc/openvpn/ta.key
+    openvpn_servers:
+      description: OpenVPN Server Hosts
+      hosts:
+        vpn-server-1:
+          ansible_host: 192.168.1.10
+          ansible_user: ubuntu
+          ansible_port: 22
+
+# Alternative: Advanced Inventory Example with Groups and Variables
+
+# production:
+#   children:
+#     openvpn_primary_servers:
+#       hosts:
+#         prod-vpn-server-1:
+#           ansible_host: 10.0.1.10
+#           server_region: us-east
+#           server_role: primary
+#     openvpn_backup_servers:
+#       hosts:
+#         prod-vpn-server-2:
+#           ansible_host: 10.0.1.11
+#           server_region: us-east
+#           server_role: backup
+#     openvpn_clients:
+#       hosts:
+#         prod-vpn-client-1:
+#           ansible_host: 10.0.2.10
+#         prod-vpn-client-2:
+#           ansible_host: 10.0.2.11
+#   vars:
+#     environment: production
+#     openvpn_cipher: AES-256-GCM
+#     openvpn_network: 10.8.0.0/24
+#
+# staging:
+#   children:
+#     openvpn_servers:
+#       hosts:
+#         stage-vpn-server:
+#           ansible_host: 10.1.1.10
+#     openvpn_clients:
+#       hosts:
+#         stage-vpn-client:
+#           ansible_host: 10.1.2.10
+#   vars:
+#     environment: staging
+#     openvpn_cipher: AES-256-CBC
+#     openvpn_network: 10.9.0.0/24
+#
+# development:
+#   children:
+#     openvpn_servers:
+#       hosts:
+#         dev-vpn-server:
+#           ansible_host: localhost
+#           ansible_connection: local
+#     openvpn_clients:
+#       hosts:
+#         dev-vpn-client:
+#           ansible_host: localhost
+#           ansible_connection: local
+#   vars:
+#     environment: development
+#     openvpn_cipher: AES-128-CBC
+#     openvpn_network: 10.10.0.0/24

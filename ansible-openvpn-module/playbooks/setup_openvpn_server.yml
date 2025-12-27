@@ -1,0 +1,108 @@
+---
+- name: Setup OpenVPN Server
+  hosts: vpn_servers
+  become: yes
+  
+  vars:
+    openvpn_port: 1194
+    openvpn_protocol: udp
+    openvpn_cipher: 'AES-256-CBC'
+    openvpn_network: '10.8.0.0/24'
+    openvpn_netmask: '255.255.255.0'
+    openvpn_enable_nat: true
+    openvpn_enable_compress: true
+    openvpn_generate_pki: true  # Enable automatic PKI generation
+    openvpn_key_size: 2048
+    openvpn_cert_days: 3650
+    # Advanced networking options
+    openvpn_client_to_client: true
+    openvpn_topology: subnet
+    openvpn_mssfix: true
+    openvpn_fragment: 0
+    openvpn_routes: []  # Empty by default, override for custom routes
+    openvpn_redirect_gateway: true
+    openvpn_dns_servers:
+      - 8.8.8.8
+      - 8.8.4.4
+    openvpn_duplicate_cn: false
+    # Extra server options appended to server.conf (one per list item)
+    openvpn_extra_server_options: []
+    # Client-specific configuration (CCD) examples
+    openvpn_ccd_dir: /etc/openvpn/ccd
+    openvpn_ccd:
+      client1: ["10.8.0.2", "255.255.255.0"]
+      client2: "10.8.0.3 255.255.255.0"
+
+  tasks:
+    - name: Install OpenVPN and generate PKI
+      openvpn_configure:
+        mode: server
+        action: install
+        generate_pki: "{{ openvpn_generate_pki }}"
+        key_size: "{{ openvpn_key_size }}"
+        cert_days: "{{ openvpn_cert_days }}"
+      register: openvpn_install
+
+    - name: Display PKI generation result
+      debug:
+        msg: "{{ openvpn_install.message }}"
+
+    - name: Configure OpenVPN server
+      openvpn_configure:
+        mode: server
+        action: configure
+        port: "{{ openvpn_port }}"
+        protocol: "{{ openvpn_protocol }}"
+        cipher: "{{ openvpn_cipher }}"
+        vpn_network: "{{ openvpn_network }}"
+        vpn_netmask: "{{ openvpn_netmask }}"
+        enable_nat: "{{ openvpn_enable_nat }}"
+        enable_compress: "{{ openvpn_enable_compress }}"
+        ca_cert: /etc/openvpn/ca.crt
+        server_cert: /etc/openvpn/server.crt
+        server_key: /etc/openvpn/server.key
+        dh_pem: /etc/openvpn/dh.pem
+        tls_auth_key: /etc/openvpn/ta.key
+        # Advanced networking options
+        client_to_client: "{{ openvpn_client_to_client }}"
+        topology: "{{ openvpn_topology }}"
+        mssfix: "{{ openvpn_mssfix }}"
+        fragment: "{{ openvpn_fragment }}"
+        routes: "{{ openvpn_routes }}"
+        redirect_gateway: "{{ openvpn_redirect_gateway }}"
+        duplicate_cn: "{{ openvpn_duplicate_cn }}"
+        dns_servers: "{{ openvpn_dns_servers }}"
+        extra_server_options: "{{ openvpn_extra_server_options }}"
+        # CCD settings
+        ccd_dir: "{{ openvpn_ccd_dir }}"
+        ccd: "{{ openvpn_ccd }}"
+        state: present
+      register: openvpn_config
+
+    - name: Display configuration result
+      debug:
+        msg: "{{ openvpn_config.message }}"
+
+    - name: Start OpenVPN service
+      openvpn_configure:
+        mode: server
+        action: start
+        state: started
+      register: openvpn_start
+
+    - name: Display start result
+      debug:
+        msg: "{{ openvpn_start.message }}"
+
+  post_tasks:
+    - name: Verify OpenVPN status
+      openvpn_configure:
+        mode: server
+        action: status
+      register: openvpn_status
+      retries: 3
+      delay: 5
+
+    - name: Display service status
+      debug:
+        msg: "OpenVPN Status:\n{{ openvpn_status.status }}"
